@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haversine Formula Demonstration</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+  <style>
+    #map {
+      height: 400px;
+      width: 100%;
+    }
+
+    #info {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Haversine Formula Demonstration</h1>
+  <div id="map"></div>
+  <div id="info">
+    <p>Click two points on the map to calculate the distance between them.</p>
+    <p id="distance"></p>
+    <p id="time"></p>
+  </div>
+
+  <script>
+    // Initialize the map
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markers = [];
+    let line;
+
+    // Haversine formula implementation
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3; // Earth's radius in meters
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c; // Distance in meters
+    }
+
+    // Handle map clicks
+    map.on('click', function (e) {
+      if (markers.length >= 2) {
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+        if (line) map.removeLayer(line);
+      }
+
+      const marker = L.marker(e.latlng).addTo(map);
+      markers.push(marker);
+
+      if (markers.length === 2) {
+        const start = markers[0].getLatLng();
+        const end = markers[1].getLatLng();
+
+        // Calculate distance
+        const startTime = performance.now();
+        const distance = haversineDistance(start.lat, start.lng, end.lat, end.lng);
+        const endTime = performance.now();
+
+        // Draw dotted line
+        line = L.polyline([start, end], {dashArray: '5, 5', color: 'red'}).addTo(map);
+
+        // Display results
+        document.getElementById('distance').textContent = `Distance: ${distance.toFixed(2)} meters`;
+        document.getElementById('time').textContent = `Calculation time: ${(endTime - startTime).toFixed(3)} ms`;
+
+        // Fit map to show both markers
+        map.fitBounds(L.latLngBounds([start, end]));
+      }
+    });
+  </script>
+</body>
+
+</html>
